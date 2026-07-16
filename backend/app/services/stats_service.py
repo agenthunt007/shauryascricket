@@ -81,6 +81,7 @@ class StatsService:
             player_id=player.id,
             display_name=player.display_name,
             last_played=self._last_played(match_ids),
+            recent_scores=self._recent_scores(batting),
             matches=len(match_ids),
             innings=len(batting),
             runs=runs,
@@ -176,6 +177,25 @@ class StatsService:
             .limit(1)
         )
         return self.session.exec(statement).first()
+
+    def _recent_scores(self, batting: list[BattingInnings]) -> list[str]:
+        if not batting:
+            return []
+        match_dates = {
+            match.id: match.played_on
+            for match in self.session.exec(
+                select(Match).where(Match.id.in_({row.match_id for row in batting}))
+            ).all()
+        }
+        ordered_batting = sorted(
+            batting,
+            key=lambda row: (
+                match_dates.get(row.match_id) is None,
+                match_dates.get(row.match_id),
+                row.match_id,
+            ),
+        )
+        return [f"{row.runs}{'*' if row.not_out else ''}" for row in ordered_batting]
 
     def _did_not_bat_names(self, value: str) -> set[str]:
         value = re.sub(r"^did not bat:\s*", "", value, flags=re.IGNORECASE).strip()

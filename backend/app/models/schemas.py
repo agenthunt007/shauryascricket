@@ -96,6 +96,7 @@ class PlayerStatsRead(BaseModel):
     player_id: int
     display_name: str
     last_played: date | None
+    recent_scores: list[str] = []
     matches: int
     innings: int
     runs: int

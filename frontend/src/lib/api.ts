@@ -80,6 +80,7 @@ export type PlayerStats = {
   player_id: number;
   display_name: string;
   last_played: string | null;
+  recent_scores: string[];
   matches: number;
   innings: number;
   runs: number;

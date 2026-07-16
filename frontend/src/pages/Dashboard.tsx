@@ -163,6 +163,7 @@ export function Dashboard() {
                     <th>Mat</th>
                     <th>Inn</th>
                     <th>Runs Scored</th>
+                    <th>Scores</th>
                     <th>Avg</th>
                     <th>SR</th>
                   </tr>
@@ -175,6 +176,7 @@ export function Dashboard() {
                       <td>{player.matches}</td>
                       <td>{player.innings}</td>
                       <td>{player.runs}</td>
+                      <td className="scores-cell">{formatScores(player.recent_scores)}</td>
                       <td>{player.batting_average ?? "-"}</td>
                       <td>{player.strike_rate ?? "-"}</td>
                     </tr>
@@ -518,6 +520,10 @@ function formatResult(result: Match["result"]) {
 
 function formatDate(value: string | null) {
   return value ?? "-";
+}
+
+function formatScores(scores: string[]) {
+  return scores.length ? scores.join("  ") : "-";
 }
 
 function stripLabel(value: string, label: string) {

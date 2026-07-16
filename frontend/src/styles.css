@@ -439,6 +439,13 @@ td small {
   white-space: normal;
 }
 
+.scores-cell {
+  color: #2d4135;
+  font-variant-numeric: tabular-nums;
+  white-space: normal;
+  word-spacing: 0.35rem;
+}
+
 .scorecard-notes {
   display: grid;
   gap: 6px;
