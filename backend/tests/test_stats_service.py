@@ -35,7 +35,7 @@ def test_player_stats_aggregates_batting_and_bowling():
     assert stats[0].economy == 5
 
 
-def test_player_records_use_recent_match_window():
+def test_player_records_use_each_players_recent_match_window():
     engine = create_engine("sqlite://")
     SQLModel.metadata.create_all(engine)
 
@@ -46,9 +46,11 @@ def test_player_records_use_recent_match_window():
         series = Series(league_id=league.id, name="Summer")
         batter = Player(display_name="Batter")
         bowler = Player(display_name="Bowler")
+        teammate = Player(display_name="Teammate")
         session.add(series)
         session.add(batter)
         session.add(bowler)
+        session.add(teammate)
         session.flush()
 
         for index, runs in enumerate([5, 10, 40], start=1):
@@ -61,6 +63,16 @@ def test_player_records_use_recent_match_window():
             session.flush()
             session.add(BattingInnings(match_id=match.id, player_id=batter.id, runs=runs, balls=20))
             session.add(BowlingSpell(match_id=match.id, player_id=bowler.id, overs=4, runs_conceded=20, wickets=index))
+
+        for index in [4, 5]:
+            match = Match(
+                series_id=series.id,
+                source_url=f"https://example.test/match-{index}",
+                played_on=date(2026, 1, index),
+            )
+            session.add(match)
+            session.flush()
+            session.add(BattingInnings(match_id=match.id, player_id=teammate.id, runs=20, balls=20))
         session.commit()
 
         records = StatsService(session).player_records(StatsFilters(series_id=series.id), match_limit=2)

@@ -24,10 +24,16 @@ class StatsService:
         return [self._stats_for_player(player, filters) for player in players]
 
     def player_records(self, filters: StatsFilters, match_limit: int) -> PlayerRecordsRead:
-        match_ids = self._recent_match_ids(filters, match_limit)
-        stats = self.player_stats(
-            StatsFilters(league_id=filters.league_id, series_id=filters.series_id, match_ids=match_ids)
-        )
+        players = self.session.exec(select(Player).order_by(Player.display_name)).all()
+        stats = []
+        for player in players:
+            match_ids = self._recent_player_match_ids(player, filters, match_limit)
+            stats.append(
+                self._stats_for_player(
+                    player,
+                    StatsFilters(league_id=filters.league_id, series_id=filters.series_id, match_ids=match_ids),
+                )
+            )
         batting = sorted(
             (player for player in stats if player.innings > 0),
             key=lambda player: (
@@ -130,17 +136,27 @@ class StatsService:
                 match_ids.add(innings.match_id)
         return match_ids
 
-    def _recent_match_ids(self, filters: StatsFilters, match_limit: int) -> set[int]:
+    def _recent_player_match_ids(self, player: Player, filters: StatsFilters, match_limit: int) -> set[int]:
+        match_ids = (
+            self._batting_match_ids(player.id, filters)
+            | self._bowling_match_ids(player.id, filters)
+            | self._filtered_did_not_bat_match_ids(player, filters)
+        )
+        if not match_ids:
+            return set()
         statement = (
             select(Match)
+            .where(Match.id.in_(match_ids))
             .order_by(Match.played_on.is_(None), desc(Match.played_on), desc(Match.id))
             .limit(match_limit)
         )
-        if filters.series_id:
-            statement = statement.where(Match.series_id == filters.series_id)
-        elif filters.league_id:
-            statement = statement.join(Series).where(Series.league_id == filters.league_id)
         return {match.id for match in self.session.exec(statement).all() if match.id is not None}
+
+    def _batting_match_ids(self, player_id: int, filters: StatsFilters) -> set[int]:
+        return {row.match_id for row in self._filtered_batting(player_id, filters)}
+
+    def _bowling_match_ids(self, player_id: int, filters: StatsFilters) -> set[int]:
+        return {row.match_id for row in self._filtered_bowling(player_id, filters)}
 
     def _did_not_bat_names(self, value: str) -> set[str]:
         value = re.sub(r"^did not bat:\s*", "", value, flags=re.IGNORECASE).strip()
