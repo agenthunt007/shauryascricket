@@ -7,20 +7,26 @@ import {
   getLeagues,
   getMatches,
   getMatchScorecard,
+  getPlayerRecords,
   getPlayerStats,
   getSeries,
   type League,
   type Match,
   type MatchScorecard,
+  type PlayerRecords,
   type PlayerStats,
   type Series
 } from "../lib/api";
+
+const RECORD_MATCH_LIMITS = [7, 10, 14, 21];
 
 export function Dashboard() {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [series, setSeries] = useState<Series[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [stats, setStats] = useState<PlayerStats[]>([]);
+  const [playerRecords, setPlayerRecords] = useState<PlayerRecords | null>(null);
+  const [recordMatchLimit, setRecordMatchLimit] = useState(7);
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | undefined>();
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | undefined>();
   const [selectedMatchId, setSelectedMatchId] = useState<number | undefined>();
@@ -40,18 +46,20 @@ export function Dashboard() {
     Promise.all([
       getSeries(selectedLeagueId),
       getMatches(selectedLeagueId, selectedSeriesId),
-      getPlayerStats(selectedLeagueId, selectedSeriesId)
+      getPlayerStats(selectedLeagueId, selectedSeriesId),
+      getPlayerRecords(selectedLeagueId, selectedSeriesId, recordMatchLimit)
     ])
-      .then(([seriesData, matchData, statsData]) => {
+      .then(([seriesData, matchData, statsData, recordsData]) => {
         setSeries(seriesData);
         setMatches(matchData);
         setStats(statsData);
+        setPlayerRecords(recordsData);
         setSelectedMatchId(matchData[0]?.id);
         setError(null);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [selectedLeagueId, selectedSeriesId]);
+  }, [selectedLeagueId, selectedSeriesId, recordMatchLimit]);
 
   useEffect(() => {
     if (!selectedMatchId) {
@@ -179,6 +187,94 @@ export function Dashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="records-section" aria-label="Recent player records">
+        <div className="records-toolbar">
+          <div>
+            <p className="eyebrow">Recent form</p>
+            <h2>Player Average Records</h2>
+          </div>
+          <label>
+            Match window
+            <select
+              value={recordMatchLimit}
+              onChange={(event) => setRecordMatchLimit(Number(event.target.value))}
+            >
+              {RECORD_MATCH_LIMITS.map((limit) => (
+                <option key={limit} value={limit}>Last {limit} matches</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="content-grid">
+          <div className="panel records-panel">
+            <div className="panel-heading">
+              <Trophy size={20} />
+              <h2>Batting Averages</h2>
+            </div>
+            <div className="records-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Mat</th>
+                    <th>Inn</th>
+                    <th>Runs</th>
+                    <th>Avg</th>
+                    <th>SR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(playerRecords?.batting ?? []).map((player) => (
+                    <tr key={player.player_id}>
+                      <td>{player.display_name}</td>
+                      <td>{player.matches}</td>
+                      <td>{player.innings}</td>
+                      <td>{player.runs}</td>
+                      <td>{player.batting_average ?? "-"}</td>
+                      <td>{player.strike_rate ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="panel records-panel">
+            <div className="panel-heading">
+              <Users size={20} />
+              <h2>Bowling Averages</h2>
+            </div>
+            <div className="records-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Player</th>
+                    <th>Mat</th>
+                    <th>Overs</th>
+                    <th>Wkts</th>
+                    <th>Avg</th>
+                    <th>Econ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(playerRecords?.bowling ?? []).map((player) => (
+                    <tr key={player.player_id}>
+                      <td>{player.display_name}</td>
+                      <td>{player.matches}</td>
+                      <td>{player.overs}</td>
+                      <td>{player.wickets}</td>
+                      <td>{player.bowling_average ?? "-"}</td>
+                      <td>{player.economy ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 

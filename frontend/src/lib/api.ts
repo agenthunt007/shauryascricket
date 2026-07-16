@@ -96,6 +96,12 @@ export type PlayerStats = {
   bowling_average: number | null;
 };
 
+export type PlayerRecords = {
+  match_limit: number;
+  batting: PlayerStats[];
+  bowling: PlayerStats[];
+};
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`);
   if (!response.ok) {
@@ -135,6 +141,18 @@ export function getPlayerStats(leagueId?: number, seriesId?: number) {
   }
   const query = params.toString() ? `?${params.toString()}` : "";
   return getJson<PlayerStats[]>(`/api/stats/players${query}`);
+}
+
+export function getPlayerRecords(leagueId?: number, seriesId?: number, matchLimit = 7) {
+  const params = new URLSearchParams();
+  if (leagueId) {
+    params.set("league_id", String(leagueId));
+  }
+  if (seriesId) {
+    params.set("series_id", String(seriesId));
+  }
+  params.set("match_limit", String(matchLimit));
+  return getJson<PlayerRecords>(`/api/stats/player-records?${params.toString()}`);
 }
 
 export function getMatchScorecard(matchId: number) {

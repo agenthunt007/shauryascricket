@@ -112,6 +112,12 @@ class PlayerStatsRead(BaseModel):
     bowling_average: float | None
 
 
+class PlayerRecordsRead(BaseModel):
+    match_limit: int
+    batting: list[PlayerStatsRead]
+    bowling: list[PlayerStatsRead]
+
+
 class CricClubsImportRequest(BaseModel):
     league_name: str
     series_name: str

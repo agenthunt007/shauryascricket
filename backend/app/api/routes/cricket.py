@@ -2,7 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
 from app.db.session import get_session
-from app.models.schemas import LeagueRead, MatchRead, MatchScorecardRead, PlayerRead, PlayerStatsRead, SeriesRead
+from app.models.schemas import (
+    LeagueRead,
+    MatchRead,
+    MatchScorecardRead,
+    PlayerRead,
+    PlayerRecordsRead,
+    PlayerStatsRead,
+    SeriesRead,
+)
 from app.repositories.cricket_repository import CricketRepository
 from app.services.stats_service import StatsFilters, StatsService
 
@@ -57,3 +65,16 @@ def player_stats(
     session: Session = Depends(get_session),
 ):
     return StatsService(session).player_stats(StatsFilters(league_id=league_id, series_id=series_id))
+
+
+@router.get("/stats/player-records", response_model=PlayerRecordsRead)
+def player_records(
+    league_id: int | None = Query(default=None),
+    series_id: int | None = Query(default=None),
+    match_limit: int = Query(default=7, ge=1, le=50),
+    session: Session = Depends(get_session),
+):
+    return StatsService(session).player_records(
+        StatsFilters(league_id=league_id, series_id=series_id),
+        match_limit=match_limit,
+    )

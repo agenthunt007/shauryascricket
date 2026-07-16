@@ -133,6 +133,34 @@ select {
   gap: 20px;
 }
 
+.records-section {
+  margin-top: 20px;
+}
+
+.records-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.records-toolbar label {
+  min-width: 180px;
+}
+
+.records-table-wrap {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.records-table-wrap thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #ffffff;
+}
+
 .panel {
   overflow: hidden;
 }
@@ -425,6 +453,10 @@ td small {
   .summary-grid,
   .filters {
     grid-template-columns: 1fr;
+  }
+
+  .records-toolbar {
+    display: grid;
   }
 
   .hero {
