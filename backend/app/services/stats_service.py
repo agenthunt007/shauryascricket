@@ -16,6 +16,8 @@ class StatsFilters:
 
 
 class StatsService:
+    RECORD_MIN_MATCHES = 7
+
     def __init__(self, session: Session):
         self.session = session
 
@@ -27,7 +29,10 @@ class StatsService:
         players = self.session.exec(select(Player).order_by(Player.display_name)).all()
         stats = []
         for player in players:
-            match_ids = self._recent_player_match_ids(player, filters, match_limit)
+            appearance_match_ids = self._player_match_ids(player, filters)
+            if len(appearance_match_ids) <= self.RECORD_MIN_MATCHES:
+                continue
+            match_ids = self._recent_match_ids(appearance_match_ids, match_limit)
             stats.append(
                 self._stats_for_player(
                     player,
@@ -137,12 +142,14 @@ class StatsService:
                 match_ids.add(innings.match_id)
         return match_ids
 
-    def _recent_player_match_ids(self, player: Player, filters: StatsFilters, match_limit: int) -> set[int]:
-        match_ids = (
+    def _player_match_ids(self, player: Player, filters: StatsFilters) -> set[int]:
+        return (
             self._batting_match_ids(player.id, filters)
             | self._bowling_match_ids(player.id, filters)
             | self._filtered_did_not_bat_match_ids(player, filters)
         )
+
+    def _recent_match_ids(self, match_ids: set[int], match_limit: int) -> set[int]:
         if not match_ids:
             return set()
         statement = (
