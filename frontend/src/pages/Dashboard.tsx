@@ -195,6 +195,7 @@ export function Dashboard() {
           <div>
             <p className="eyebrow">Recent form</p>
             <h2>Player Average Records</h2>
+            <p className="section-note">Only players with more than 7 Shauryas matches are considered.</p>
           </div>
           <label>
             Match window

@@ -149,6 +149,12 @@ select {
   min-width: 180px;
 }
 
+.section-note {
+  margin: 6px 0 0;
+  color: #607064;
+  font-size: 0.9rem;
+}
+
 .records-table-wrap {
   max-height: 420px;
   overflow: auto;
