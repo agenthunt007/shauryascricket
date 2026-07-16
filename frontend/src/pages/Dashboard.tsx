@@ -1,5 +1,5 @@
 import { CalendarDays, ExternalLink, Trophy, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Filters } from "../components/Filters";
 import { StatCard } from "../components/StatCard";
@@ -28,6 +28,8 @@ export function Dashboard() {
   const [scorecard, setScorecard] = useState<MatchScorecard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const scorecardRef = useRef<HTMLElement | null>(null);
+  const shouldScrollToScorecard = useRef(false);
 
   useEffect(() => {
     getLeagues().then(setLeagues).catch((err) => setError(err.message));
@@ -60,6 +62,12 @@ export function Dashboard() {
       .then((data) => {
         setScorecard(data);
         setSelectedInningsNumber(data.innings[0]?.innings_number ?? 1);
+        if (shouldScrollToScorecard.current) {
+          shouldScrollToScorecard.current = false;
+          window.requestAnimationFrame(() => {
+            scorecardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
       })
       .catch((err) => setError(err.message));
   }, [selectedMatchId]);
@@ -191,10 +199,18 @@ export function Dashboard() {
               className={`match-row ${selectedMatchId === match.id ? "active" : ""}`}
               key={match.id}
             >
-              <button className="match-row-select" type="button" onClick={() => setSelectedMatchId(match.id)}>
+              <button
+                className="match-row-select"
+                type="button"
+                onClick={() => {
+                  shouldScrollToScorecard.current = true;
+                  setSelectedMatchId(match.id);
+                }}
+              >
                 <span>{match.played_on ?? "Date unavailable"}</span>
                 <strong>Shauryas vs {match.opponent ?? "Opponent"}</strong>
                 <small>{[match.venue, match.summary ?? formatResult(match.result)].filter(Boolean).join(" · ")}</small>
+                <span className="view-scorecard-chip">View</span>
               </button>
               <a className="match-scorecard-link" href={match.source_url} target="_blank" rel="noreferrer">
                 <ExternalLink size={16} />
@@ -207,6 +223,7 @@ export function Dashboard() {
 
       {scorecard && (
         <ScorecardView
+          sectionRef={scorecardRef}
           scorecard={scorecard}
           selectedInningsNumber={selectedInningsNumber}
           onInningsChange={setSelectedInningsNumber}
@@ -217,12 +234,13 @@ export function Dashboard() {
 }
 
 type ScorecardViewProps = {
+  sectionRef: React.RefObject<HTMLElement | null>;
   scorecard: MatchScorecard;
   selectedInningsNumber: number;
   onInningsChange: (inningsNumber: number) => void;
 };
 
-function ScorecardView({ scorecard, selectedInningsNumber, onInningsChange }: ScorecardViewProps) {
+function ScorecardView({ sectionRef, scorecard, selectedInningsNumber, onInningsChange }: ScorecardViewProps) {
   const selectedInnings = scorecard.innings.find((innings) => innings.innings_number === selectedInningsNumber)
     ?? scorecard.innings[0];
 
@@ -235,7 +253,7 @@ function ScorecardView({ scorecard, selectedInningsNumber, onInningsChange }: Sc
   const inningsTotal = formatInningsTotal(selectedInnings.total_runs, selectedInnings.total_wickets, selectedInnings.overs);
 
   return (
-    <section className="panel scorecard-panel">
+    <section className="panel scorecard-panel" ref={sectionRef}>
       <div className="scorecard-header">
         <div>
           <p className="eyebrow">Full scorecard</p>
