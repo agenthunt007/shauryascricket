@@ -1,0 +1,111 @@
+from dataclasses import dataclass
+import re
+
+from sqlmodel import Session, select
+
+from app.models.domain import BattingInnings, BowlingSpell, Match, Player, ScorecardInnings, Series
+from app.models.schemas import PlayerStatsRead
+
+
+@dataclass(frozen=True)
+class StatsFilters:
+    league_id: int | None = None
+    series_id: int | None = None
+
+
+class StatsService:
+    def __init__(self, session: Session):
+        self.session = session
+
+    def player_stats(self, filters: StatsFilters) -> list[PlayerStatsRead]:
+        players = self.session.exec(select(Player).order_by(Player.display_name)).all()
+        return [self._stats_for_player(player, filters) for player in players]
+
+    def _stats_for_player(self, player: Player, filters: StatsFilters) -> PlayerStatsRead:
+        batting = self._filtered_batting(player.id, filters)
+        bowling = self._filtered_bowling(player.id, filters)
+        match_ids = (
+            {row.match_id for row in batting}
+            | {row.match_id for row in bowling}
+            | self._filtered_did_not_bat_match_ids(player, filters)
+        )
+
+        runs = sum(row.runs for row in batting)
+        balls = sum(row.balls for row in batting)
+        dismissals = sum(1 for row in batting if not row.not_out)
+        overs = sum(row.overs for row in bowling)
+        runs_conceded = sum(row.runs_conceded for row in bowling)
+        wickets = sum(row.wickets for row in bowling)
+
+        return PlayerStatsRead(
+            player_id=player.id,
+            display_name=player.display_name,
+            matches=len(match_ids),
+            innings=len(batting),
+            runs=runs,
+            balls=balls,
+            fours=sum(row.fours for row in batting),
+            sixes=sum(row.sixes for row in batting),
+            not_outs=sum(1 for row in batting if row.not_out),
+            batting_average=round(runs / dismissals, 2) if dismissals else None,
+            strike_rate=round((runs / balls) * 100, 2) if balls else None,
+            overs=round(overs, 1),
+            wickets=wickets,
+            runs_conceded=runs_conceded,
+            maidens=sum(row.maidens for row in bowling),
+            economy=round(runs_conceded / overs, 2) if overs else None,
+            bowling_average=round(runs_conceded / wickets, 2) if wickets else None,
+        )
+
+    def _filtered_batting(self, player_id: int, filters: StatsFilters) -> list[BattingInnings]:
+        statement = select(BattingInnings).join(Match).where(BattingInnings.player_id == player_id)
+        if filters.series_id:
+            statement = statement.where(Match.series_id == filters.series_id)
+        elif filters.league_id:
+            statement = statement.join(Series).where(Series.league_id == filters.league_id)
+        return list(self.session.exec(statement).all())
+
+    def _filtered_bowling(self, player_id: int, filters: StatsFilters) -> list[BowlingSpell]:
+        statement = select(BowlingSpell).join(Match).where(BowlingSpell.player_id == player_id)
+        if filters.series_id:
+            statement = statement.where(Match.series_id == filters.series_id)
+        elif filters.league_id:
+            statement = statement.join(Series).where(Series.league_id == filters.league_id)
+        return list(self.session.exec(statement).all())
+
+    def _filtered_did_not_bat_match_ids(self, player: Player, filters: StatsFilters) -> set[int]:
+        statement = (
+            select(ScorecardInnings)
+            .join(Match)
+            .where(
+                ScorecardInnings.batting_team == "Shauryas",
+                ScorecardInnings.did_not_bat.is_not(None),
+            )
+        )
+        if filters.series_id:
+            statement = statement.where(Match.series_id == filters.series_id)
+        elif filters.league_id:
+            statement = statement.join(Series).where(Series.league_id == filters.league_id)
+
+        player_name = self._normalize_name(player.display_name)
+        match_ids = set()
+        for innings in self.session.exec(statement).all():
+            did_not_bat_names = self._did_not_bat_names(innings.did_not_bat or "")
+            if player_name in did_not_bat_names:
+                match_ids.add(innings.match_id)
+        return match_ids
+
+    def _did_not_bat_names(self, value: str) -> set[str]:
+        value = re.sub(r"^did not bat:\s*", "", value, flags=re.IGNORECASE).strip()
+        if not value:
+            return set()
+        return {self._normalize_name(name) for name in value.split(",") if name.strip()}
+
+    def _normalize_name(self, value: str) -> str:
+        return " ".join(
+            value.replace("†", "")
+            .replace("*", "")
+            .replace("(c)", "")
+            .replace("(wk)", "")
+            .split()
+        ).lower()

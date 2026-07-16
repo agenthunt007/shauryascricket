@@ -1,0 +1,394 @@
+import { CalendarDays, ExternalLink, Trophy, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+import { Filters } from "../components/Filters";
+import { StatCard } from "../components/StatCard";
+import {
+  getLeagues,
+  getMatches,
+  getMatchScorecard,
+  getPlayerStats,
+  getSeries,
+  type League,
+  type Match,
+  type MatchScorecard,
+  type PlayerStats,
+  type Series
+} from "../lib/api";
+
+export function Dashboard() {
+  const [leagues, setLeagues] = useState<League[]>([]);
+  const [series, setSeries] = useState<Series[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [stats, setStats] = useState<PlayerStats[]>([]);
+  const [selectedLeagueId, setSelectedLeagueId] = useState<number | undefined>();
+  const [selectedSeriesId, setSelectedSeriesId] = useState<number | undefined>();
+  const [selectedMatchId, setSelectedMatchId] = useState<number | undefined>();
+  const [selectedInningsNumber, setSelectedInningsNumber] = useState(1);
+  const [scorecard, setScorecard] = useState<MatchScorecard | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getLeagues().then(setLeagues).catch((err) => setError(err.message));
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      getSeries(selectedLeagueId),
+      getMatches(selectedLeagueId, selectedSeriesId),
+      getPlayerStats(selectedLeagueId, selectedSeriesId)
+    ])
+      .then(([seriesData, matchData, statsData]) => {
+        setSeries(seriesData);
+        setMatches(matchData);
+        setStats(statsData);
+        setSelectedMatchId(matchData[0]?.id);
+        setError(null);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [selectedLeagueId, selectedSeriesId]);
+
+  useEffect(() => {
+    if (!selectedMatchId) {
+      setScorecard(null);
+      return;
+    }
+    getMatchScorecard(selectedMatchId)
+      .then((data) => {
+        setScorecard(data);
+        setSelectedInningsNumber(data.innings[0]?.innings_number ?? 1);
+      })
+      .catch((err) => setError(err.message));
+  }, [selectedMatchId]);
+
+  const totals = useMemo(() => {
+    const wins = matches.filter((match) => match.result === "won").length;
+    return {
+      matches: matches.length,
+      players: stats.filter((player) => player.matches > 0).length,
+      wins
+    };
+  }, [matches, stats]);
+
+  const topBatters = [...stats].sort((a, b) => b.runs - a.runs).slice(0, 8);
+  const topBowlers = [...stats]
+    .sort((a, b) => b.wickets - a.wickets || (a.economy ?? 99) - (b.economy ?? 99))
+    .slice(0, 8);
+
+  return (
+    <main>
+      <section className="hero">
+        <div>
+          <p className="eyebrow">Houston league cricket</p>
+          <h1>Shauryas Cricket</h1>
+          <p className="hero-copy">
+            Match history and player performance by league and series, powered by public CricClubs scorecards.
+          </p>
+        </div>
+        <Filters
+          leagues={leagues}
+          series={series}
+          selectedLeagueId={selectedLeagueId}
+          selectedSeriesId={selectedSeriesId}
+          onLeagueChange={(leagueId) => {
+            setSelectedLeagueId(leagueId);
+            setSelectedSeriesId(undefined);
+          }}
+          onSeriesChange={setSelectedSeriesId}
+        />
+      </section>
+
+      {error && <div className="notice">{error}</div>}
+      {loading && <div className="notice">Loading latest stats...</div>}
+
+      <section className="summary-grid" aria-label="Team summary">
+        <StatCard label="Matches tracked" value={totals.matches} />
+        <StatCard label="Players" value={totals.players} />
+        <StatCard label="Wins" value={totals.wins} />
+      </section>
+
+      <section className="content-grid">
+        <div className="panel">
+          <div className="panel-heading">
+            <Trophy size={20} />
+            <h2>Batting Leaders</h2>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Mat</th>
+                <th>Runs</th>
+                <th>Avg</th>
+                <th>SR</th>
+                <th>4s/6s</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topBatters.map((player) => (
+                <tr key={player.player_id}>
+                  <td>{player.display_name}</td>
+                  <td>{player.matches}</td>
+                  <td>{player.runs}</td>
+                  <td>{player.batting_average ?? "-"}</td>
+                  <td>{player.strike_rate ?? "-"}</td>
+                  <td>{player.fours}/{player.sixes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="panel">
+          <div className="panel-heading">
+            <Users size={20} />
+            <h2>Bowling Leaders</h2>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Mat</th>
+                <th>Wkts</th>
+                <th>Overs</th>
+                <th>Econ</th>
+                <th>Avg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topBowlers.map((player) => (
+                <tr key={player.player_id}>
+                  <td>{player.display_name}</td>
+                  <td>{player.matches}</td>
+                  <td>{player.wickets}</td>
+                  <td>{player.overs}</td>
+                  <td>{player.economy ?? "-"}</td>
+                  <td>{player.bowling_average ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel matches-panel">
+        <div className="panel-heading">
+          <CalendarDays size={20} />
+          <h2>Matches</h2>
+        </div>
+        <div className="match-list">
+          <div className="match-list-header" aria-hidden="true">
+            <span>Date</span>
+            <span>Match</span>
+            <span>Result</span>
+            <span>Scorecard</span>
+          </div>
+          {matches.map((match) => (
+            <div
+              className={`match-row ${selectedMatchId === match.id ? "active" : ""}`}
+              key={match.id}
+            >
+              <button className="match-row-select" type="button" onClick={() => setSelectedMatchId(match.id)}>
+                <span>{match.played_on ?? "Date unavailable"}</span>
+                <strong>Shauryas vs {match.opponent ?? "Opponent"}</strong>
+                <small>{[match.venue, match.summary ?? formatResult(match.result)].filter(Boolean).join(" · ")}</small>
+              </button>
+              <a className="match-scorecard-link" href={match.source_url} target="_blank" rel="noreferrer">
+                <ExternalLink size={16} />
+                <span>CricClubs</span>
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {scorecard && (
+        <ScorecardView
+          scorecard={scorecard}
+          selectedInningsNumber={selectedInningsNumber}
+          onInningsChange={setSelectedInningsNumber}
+        />
+      )}
+    </main>
+  );
+}
+
+type ScorecardViewProps = {
+  scorecard: MatchScorecard;
+  selectedInningsNumber: number;
+  onInningsChange: (inningsNumber: number) => void;
+};
+
+function ScorecardView({ scorecard, selectedInningsNumber, onInningsChange }: ScorecardViewProps) {
+  const selectedInnings = scorecard.innings.find((innings) => innings.innings_number === selectedInningsNumber)
+    ?? scorecard.innings[0];
+
+  if (!selectedInnings) {
+    return null;
+  }
+
+  const batting = scorecard.batting.filter((line) => line.innings_number === selectedInnings.innings_number);
+  const bowling = scorecard.bowling.filter((line) => line.innings_number === selectedInnings.innings_number);
+  const inningsTotal = formatInningsTotal(selectedInnings.total_runs, selectedInnings.total_wickets, selectedInnings.overs);
+
+  return (
+    <section className="panel scorecard-panel">
+      <div className="scorecard-header">
+        <div>
+          <p className="eyebrow">Full scorecard</p>
+          <h2>Shauryas vs {scorecard.match.opponent ?? "Opponent"}</h2>
+          <p>{scorecard.match.summary ?? scorecard.match.result.replace("_", " ")}</p>
+        </div>
+        <a className="source-link" href={scorecard.match.source_url} target="_blank" rel="noreferrer">
+          <ExternalLink size={16} />
+          CricClubs
+        </a>
+      </div>
+
+      <div className="match-meta">
+        <span>{scorecard.match.played_on ?? "Date unavailable"}</span>
+        {scorecard.match.venue && <span>{scorecard.match.venue}</span>}
+        <span>{scorecard.innings.map((innings) => `${innings.batting_team} ${formatInningsTotal(innings.total_runs, innings.total_wickets, innings.overs)}`).join(" · ")}</span>
+      </div>
+
+      <div className="innings-tabs" role="tablist" aria-label="Innings">
+        {scorecard.innings.map((innings) => (
+          <button
+            className={selectedInnings.innings_number === innings.innings_number ? "active" : ""}
+            key={innings.id}
+            type="button"
+            onClick={() => onInningsChange(innings.innings_number)}
+          >
+            <span>{innings.batting_team}</span>
+            <strong>{formatInningsTotal(innings.total_runs, innings.total_wickets, innings.overs)}</strong>
+          </button>
+        ))}
+      </div>
+
+      <div className="innings-scoreline">
+        <h3>{selectedInnings.batting_team} innings</h3>
+        <strong>{inningsTotal}</strong>
+      </div>
+
+      <div className="scorecard-table-wrap">
+        <table className="scorecard-table batting-table">
+          <thead>
+            <tr>
+              <th>Batter</th>
+              <th>How out</th>
+              <th>R</th>
+              <th>B</th>
+              <th>4s</th>
+              <th>6s</th>
+              <th>SR</th>
+            </tr>
+          </thead>
+          <tbody>
+            {batting.map((line) => (
+              <tr key={line.id} className={line.is_shauryas ? "highlight-row" : undefined}>
+                <td><strong>{line.player_name}</strong></td>
+                <td className="dismissal-cell">{line.dismissal || "-"}</td>
+                <td><strong>{line.runs}</strong></td>
+                <td>{line.balls}</td>
+                <td>{line.fours}</td>
+                <td>{line.sixes}</td>
+                <td>{line.strike_rate ?? "-"}</td>
+              </tr>
+            ))}
+            <tr className="total-row">
+              <td>Extras</td>
+              <td>{selectedInnings.extras_detail ?? "-"}</td>
+              <td><strong>{selectedInnings.extras ?? 0}</strong></td>
+              <td />
+              <td />
+              <td />
+              <td />
+            </tr>
+            <tr className="total-row">
+              <td>Total</td>
+              <td>{selectedInnings.overs !== null ? `${selectedInnings.overs} overs` : "-"}</td>
+              <td><strong>{selectedInnings.total_runs ?? 0}</strong></td>
+              <td />
+              <td />
+              <td />
+              <td />
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {(selectedInnings.did_not_bat || selectedInnings.fall_of_wickets) && (
+        <div className="scorecard-notes">
+          {selectedInnings.did_not_bat && <p><strong>Did not bat:</strong> {stripLabel(selectedInnings.did_not_bat, "Did not bat:")}</p>}
+          {selectedInnings.fall_of_wickets && <p><strong>Fall of wickets:</strong> {stripLabel(selectedInnings.fall_of_wickets, "Fall of Wickets")}</p>}
+        </div>
+      )}
+
+      <div className="innings-scoreline secondary">
+        <h3>Bowling</h3>
+        <span>{bowling[0]?.bowling_team ?? "Bowling team"}</span>
+      </div>
+
+      <div className="scorecard-table-wrap">
+        <table className="scorecard-table">
+          <thead>
+            <tr>
+              <th>Bowler</th>
+              <th>O</th>
+              <th>M</th>
+              <th>Dot</th>
+              <th>R</th>
+              <th>W</th>
+              <th>Extras</th>
+              <th>Econ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bowling.map((line) => (
+              <tr key={line.id} className={line.is_shauryas ? "highlight-row" : undefined}>
+                <td><strong>{line.player_name}</strong></td>
+                <td>{line.overs}</td>
+                <td>{line.maidens}</td>
+                <td>{line.dots}</td>
+                <td>{line.runs_conceded}</td>
+                <td><strong>{line.wickets}</strong></td>
+                <td>{formatBowlingExtras(line.wides, line.no_balls)}</td>
+                <td>{line.economy ?? "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function formatInningsTotal(runs: number | null, wickets: number | null, overs: number | null) {
+  const score = `${runs ?? 0}/${wickets ?? 0}`;
+  return overs !== null ? `${score} (${overs})` : score;
+}
+
+function formatBowlingExtras(wides: number, noBalls: number) {
+  if (!wides && !noBalls) {
+    return "-";
+  }
+  return [`${wides}w`, `${noBalls}nb`].filter((item) => !item.startsWith("0")).join(", ");
+}
+
+function formatResult(result: Match["result"]) {
+  const labels: Record<Match["result"], string> = {
+    won: "Shauryas won",
+    lost: "Shauryas lost",
+    tied: "Match tied",
+    no_result: "No result",
+    unknown: "Result not listed"
+  };
+  return labels[result];
+}
+
+function stripLabel(value: string, label: string) {
+  return value.replace(label, "").trim();
+}
