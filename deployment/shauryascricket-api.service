@@ -1,0 +1,17 @@
+[Unit]
+Description=Shauryas Cricket FastAPI backend
+After=network.target postgresql@16-main.service
+Wants=postgresql@16-main.service
+
+[Service]
+Type=simple
+User=shauryascricket
+Group=shauryascricket
+WorkingDirectory=/opt/shauryascricket/app/backend
+Environment=PATH=/opt/shauryascricket/venv/bin
+ExecStart=/opt/shauryascricket/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
