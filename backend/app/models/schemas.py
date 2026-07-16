@@ -95,6 +95,7 @@ class PlayerRead(BaseModel):
 class PlayerStatsRead(BaseModel):
     player_id: int
     display_name: str
+    last_played: date | None
     matches: int
     innings: int
     runs: int

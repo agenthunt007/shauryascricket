@@ -79,6 +79,7 @@ export type MatchScorecard = {
 export type PlayerStats = {
   player_id: number;
   display_name: string;
+  last_played: string | null;
   matches: number;
   innings: number;
   runs: number;

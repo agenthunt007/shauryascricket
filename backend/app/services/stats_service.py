@@ -75,6 +75,7 @@ class StatsService:
         return PlayerStatsRead(
             player_id=player.id,
             display_name=player.display_name,
+            last_played=self._last_played(match_ids),
             matches=len(match_ids),
             innings=len(batting),
             runs=runs,
@@ -157,6 +158,17 @@ class StatsService:
 
     def _bowling_match_ids(self, player_id: int, filters: StatsFilters) -> set[int]:
         return {row.match_id for row in self._filtered_bowling(player_id, filters)}
+
+    def _last_played(self, match_ids: set[int]):
+        if not match_ids:
+            return None
+        statement = (
+            select(Match.played_on)
+            .where(Match.id.in_(match_ids), Match.played_on.is_not(None))
+            .order_by(desc(Match.played_on), desc(Match.id))
+            .limit(1)
+        )
+        return self.session.exec(statement).first()
 
     def _did_not_bat_names(self, value: str) -> set[str]:
         value = re.sub(r"^did not bat:\s*", "", value, flags=re.IGNORECASE).strip()

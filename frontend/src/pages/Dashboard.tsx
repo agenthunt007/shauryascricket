@@ -220,6 +220,7 @@ export function Dashboard() {
                 <thead>
                   <tr>
                     <th>Player</th>
+                    <th>Last Played</th>
                     <th>Mat</th>
                     <th>Inn</th>
                     <th>Runs</th>
@@ -231,6 +232,7 @@ export function Dashboard() {
                   {(playerRecords?.batting ?? []).map((player) => (
                     <tr key={player.player_id}>
                       <td>{player.display_name}</td>
+                      <td>{formatDate(player.last_played)}</td>
                       <td>{player.matches}</td>
                       <td>{player.innings}</td>
                       <td>{player.runs}</td>
@@ -253,6 +255,7 @@ export function Dashboard() {
                 <thead>
                   <tr>
                     <th>Player</th>
+                    <th>Last Played</th>
                     <th>Mat</th>
                     <th>Overs</th>
                     <th>Wkts</th>
@@ -264,6 +267,7 @@ export function Dashboard() {
                   {(playerRecords?.bowling ?? []).map((player) => (
                     <tr key={player.player_id}>
                       <td>{player.display_name}</td>
+                      <td>{formatDate(player.last_played)}</td>
                       <td>{player.matches}</td>
                       <td>{player.overs}</td>
                       <td>{player.wickets}</td>
@@ -503,6 +507,10 @@ function formatResult(result: Match["result"]) {
     unknown: "Result not listed"
   };
   return labels[result];
+}
+
+function formatDate(value: string | null) {
+  return value ?? "-";
 }
 
 function stripLabel(value: string, label: string) {

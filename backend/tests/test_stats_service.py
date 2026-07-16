@@ -30,6 +30,7 @@ def test_player_stats_aggregates_batting_and_bowling():
 
     assert len(stats) == 1
     assert stats[0].runs == 45
+    assert stats[0].last_played is None
     assert stats[0].strike_rate == 150
     assert stats[0].wickets == 2
     assert stats[0].economy == 5
@@ -79,7 +80,9 @@ def test_player_records_use_each_players_recent_match_window():
 
     assert records.match_limit == 2
     assert records.batting[0].display_name == "Batter"
+    assert records.batting[0].last_played == date(2026, 1, 3)
     assert records.batting[0].runs == 50
     assert records.batting[0].matches == 2
     assert records.bowling[0].display_name == "Bowler"
+    assert records.bowling[0].last_played == date(2026, 1, 3)
     assert records.bowling[0].wickets == 5
