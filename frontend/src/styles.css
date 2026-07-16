@@ -165,30 +165,48 @@ th {
   text-transform: uppercase;
 }
 
-.matches-panel {
+.match-browser {
+  display: grid;
+  grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.4fr);
+  gap: 20px;
   margin-top: 20px;
+  align-items: start;
+}
+
+.matches-panel {
+  margin-top: 0;
 }
 
 .match-list {
   display: grid;
+  max-height: 760px;
+  overflow-y: auto;
 }
 
 .match-list-header {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr) 300px 72px 110px;
-  gap: 16px;
+  grid-template-columns: 105px minmax(0, 1fr) 110px;
+  gap: 12px;
   padding: 10px 18px;
   border-bottom: 1px solid #eef2eb;
+  background: #ffffff;
   color: #607064;
   font-size: 0.78rem;
   font-weight: 700;
+  position: sticky;
+  top: 0;
   text-transform: uppercase;
+  z-index: 1;
+}
+
+.match-list-header span:nth-child(3) {
+  display: none;
 }
 
 .match-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   width: 100%;
   padding: 0 18px;
@@ -205,8 +223,8 @@ th {
 
 .match-row-select {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr) 300px 72px;
-  gap: 16px;
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: 8px 12px;
   align-items: center;
   width: 100%;
   padding: 14px 0;
@@ -219,10 +237,13 @@ th {
 }
 
 .match-row small {
+  grid-column: 2;
   color: #607064;
+  white-space: normal;
 }
 
 .view-scorecard-chip {
+  display: none;
   justify-self: end;
   min-width: 54px;
   padding: 4px 8px;
@@ -258,7 +279,7 @@ th {
 }
 
 .scorecard-panel {
-  margin-top: 20px;
+  margin-top: 0;
   scroll-margin-top: 18px;
 }
 
@@ -400,6 +421,7 @@ td small {
 
   .hero,
   .content-grid,
+  .match-browser,
   .summary-grid,
   .filters {
     grid-template-columns: 1fr;
@@ -414,6 +436,11 @@ td small {
     display: none;
   }
 
+  .match-list {
+    max-height: none;
+    overflow-y: visible;
+  }
+
   .match-row {
     grid-template-columns: 1fr;
     gap: 4px;
@@ -426,7 +453,12 @@ td small {
     padding: 0;
   }
 
+  .match-row small {
+    grid-column: auto;
+  }
+
   .view-scorecard-chip {
+    display: inline-block;
     justify-self: start;
     margin-top: 4px;
   }

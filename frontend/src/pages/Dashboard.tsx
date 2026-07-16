@@ -182,53 +182,55 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="panel matches-panel">
-        <div className="panel-heading">
-          <CalendarDays size={20} />
-          <h2>Matches</h2>
-        </div>
-        <div className="match-list">
-          <div className="match-list-header" aria-hidden="true">
-            <span>Date</span>
-            <span>Match</span>
-            <span>Result</span>
-            <span>Scorecard</span>
+      <section className="match-browser" aria-label="Matches and scorecard">
+        <section className="panel matches-panel">
+          <div className="panel-heading">
+            <CalendarDays size={20} />
+            <h2>Matches</h2>
           </div>
-          {matches.map((match) => (
-            <div
-              className={`match-row ${selectedMatchId === match.id ? "active" : ""}`}
-              key={match.id}
-            >
-              <button
-                className="match-row-select"
-                type="button"
-                onClick={() => {
-                  shouldScrollToScorecard.current = true;
-                  setSelectedMatchId(match.id);
-                }}
-              >
-                <span>{match.played_on ?? "Date unavailable"}</span>
-                <strong>Shauryas vs {match.opponent ?? "Opponent"}</strong>
-                <small>{[match.venue, match.summary ?? formatResult(match.result)].filter(Boolean).join(" · ")}</small>
-                <span className="view-scorecard-chip">View</span>
-              </button>
-              <a className="match-scorecard-link" href={match.source_url} target="_blank" rel="noreferrer">
-                <ExternalLink size={16} />
-                <span>CricClubs</span>
-              </a>
+          <div className="match-list">
+            <div className="match-list-header" aria-hidden="true">
+              <span>Date</span>
+              <span>Match</span>
+              <span>Result</span>
+              <span>Scorecard</span>
             </div>
-          ))}
-        </div>
-      </section>
+            {matches.map((match) => (
+              <div
+                className={`match-row ${selectedMatchId === match.id ? "active" : ""}`}
+                key={match.id}
+              >
+                <button
+                  className="match-row-select"
+                  type="button"
+                  onClick={() => {
+                    shouldScrollToScorecard.current = true;
+                    setSelectedMatchId(match.id);
+                  }}
+                >
+                  <span>{match.played_on ?? "Date unavailable"}</span>
+                  <strong>Shauryas vs {match.opponent ?? "Opponent"}</strong>
+                  <small>{[match.venue, match.summary ?? formatResult(match.result)].filter(Boolean).join(" · ")}</small>
+                  <span className="view-scorecard-chip">View</span>
+                </button>
+                <a className="match-scorecard-link" href={match.source_url} target="_blank" rel="noreferrer">
+                  <ExternalLink size={16} />
+                  <span>CricClubs</span>
+                </a>
+              </div>
+            ))}
+          </div>
+        </section>
 
-      {scorecard && (
-        <ScorecardView
-          sectionRef={scorecardRef}
-          scorecard={scorecard}
-          selectedInningsNumber={selectedInningsNumber}
-          onInningsChange={setSelectedInningsNumber}
-        />
-      )}
+        {scorecard && (
+          <ScorecardView
+            sectionRef={scorecardRef}
+            scorecard={scorecard}
+            selectedInningsNumber={selectedInningsNumber}
+            onInningsChange={setSelectedInningsNumber}
+          />
+        )}
+      </section>
     </main>
   );
 }
