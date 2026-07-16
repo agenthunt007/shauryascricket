@@ -162,7 +162,7 @@ export function Dashboard() {
                     <th>Last Played</th>
                     <th>Mat</th>
                     <th>Inn</th>
-                    <th>Runs</th>
+                    <th>Runs Scored</th>
                     <th>Avg</th>
                     <th>SR</th>
                   </tr>
