@@ -137,6 +137,10 @@ select {
   margin-top: 20px;
 }
 
+.all-records-section {
+  margin-top: 20px;
+}
+
 .records-toolbar {
   display: flex;
   justify-content: space-between;

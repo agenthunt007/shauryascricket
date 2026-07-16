@@ -89,10 +89,12 @@ export function Dashboard() {
     };
   }, [matches, stats]);
 
-  const topBatters = [...stats].sort((a, b) => b.runs - a.runs).slice(0, 8);
-  const topBowlers = [...stats]
-    .sort((a, b) => b.wickets - a.wickets || (a.economy ?? 99) - (b.economy ?? 99))
-    .slice(0, 8);
+  const allBatters = [...stats]
+    .filter((player) => player.innings > 0)
+    .sort((a, b) => b.runs - a.runs || (b.batting_average ?? 0) - (a.batting_average ?? 0));
+  const allBowlers = [...stats]
+    .filter((player) => player.overs > 0)
+    .sort((a, b) => b.wickets - a.wickets || (a.economy ?? 99) - (b.economy ?? 99));
 
   return (
     <main>
@@ -124,70 +126,6 @@ export function Dashboard() {
         <StatCard label="Matches tracked" value={totals.matches} />
         <StatCard label="Players" value={totals.players} />
         <StatCard label="Wins" value={totals.wins} />
-      </section>
-
-      <section className="content-grid">
-        <div className="panel">
-          <div className="panel-heading">
-            <Trophy size={20} />
-            <h2>Batting Leaders</h2>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Mat</th>
-                <th>Runs</th>
-                <th>Avg</th>
-                <th>SR</th>
-                <th>4s/6s</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topBatters.map((player) => (
-                <tr key={player.player_id}>
-                  <td>{player.display_name}</td>
-                  <td>{player.matches}</td>
-                  <td>{player.runs}</td>
-                  <td>{player.batting_average ?? "-"}</td>
-                  <td>{player.strike_rate ?? "-"}</td>
-                  <td>{player.fours}/{player.sixes}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="panel">
-          <div className="panel-heading">
-            <Users size={20} />
-            <h2>Bowling Leaders</h2>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th>Mat</th>
-                <th>Wkts</th>
-                <th>Overs</th>
-                <th>Econ</th>
-                <th>Avg</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topBowlers.map((player) => (
-                <tr key={player.player_id}>
-                  <td>{player.display_name}</td>
-                  <td>{player.matches}</td>
-                  <td>{player.wickets}</td>
-                  <td>{player.overs}</td>
-                  <td>{player.economy ?? "-"}</td>
-                  <td>{player.bowling_average ?? "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </section>
 
       <section className="records-section" aria-label="Recent player records">
@@ -279,6 +217,74 @@ export function Dashboard() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="content-grid all-records-section" aria-label="All player records">
+        <div className="panel">
+          <div className="panel-heading">
+            <Trophy size={20} />
+            <h2>All Batting Records</h2>
+          </div>
+          <div className="records-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Mat</th>
+                  <th>Runs</th>
+                  <th>Avg</th>
+                  <th>SR</th>
+                  <th>4s/6s</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allBatters.map((player) => (
+                  <tr key={player.player_id}>
+                    <td>{player.display_name}</td>
+                    <td>{player.matches}</td>
+                    <td>{player.runs}</td>
+                    <td>{player.batting_average ?? "-"}</td>
+                    <td>{player.strike_rate ?? "-"}</td>
+                    <td>{player.fours}/{player.sixes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-heading">
+            <Users size={20} />
+            <h2>All Bowling Records</h2>
+          </div>
+          <div className="records-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Mat</th>
+                  <th>Wkts</th>
+                  <th>Overs</th>
+                  <th>Econ</th>
+                  <th>Avg</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allBowlers.map((player) => (
+                  <tr key={player.player_id}>
+                    <td>{player.display_name}</td>
+                    <td>{player.matches}</td>
+                    <td>{player.wickets}</td>
+                    <td>{player.overs}</td>
+                    <td>{player.economy ?? "-"}</td>
+                    <td>{player.bowling_average ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
