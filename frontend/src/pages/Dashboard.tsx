@@ -20,6 +20,28 @@ import {
 
 const RECORD_MATCH_LIMITS = [7, 10, 14, 21];
 
+type SortDirection = "asc" | "desc";
+type SortConfig = {
+  key: string;
+  direction: SortDirection;
+};
+
+const SORT_LABELS: Record<string, string> = {
+  batting_average: "batting average",
+  bowling_average: "bowling average",
+  boundaries: "4s/6s",
+  display_name: "player",
+  economy: "economy",
+  innings: "innings",
+  last_played: "last played",
+  matches: "matches",
+  overs: "overs",
+  recent_scores: "scores",
+  runs: "runs",
+  strike_rate: "strike rate",
+  wickets: "wickets"
+};
+
 export function Dashboard() {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [series, setSeries] = useState<Series[]>([]);
@@ -27,6 +49,10 @@ export function Dashboard() {
   const [stats, setStats] = useState<PlayerStats[]>([]);
   const [playerRecords, setPlayerRecords] = useState<PlayerRecords | null>(null);
   const [recordMatchLimit, setRecordMatchLimit] = useState(7);
+  const [recentBattingSort, setRecentBattingSort] = useState<SortConfig>({ key: "batting_average", direction: "desc" });
+  const [recentBowlingSort, setRecentBowlingSort] = useState<SortConfig>({ key: "bowling_average", direction: "asc" });
+  const [allBattingSort, setAllBattingSort] = useState<SortConfig>({ key: "runs", direction: "desc" });
+  const [allBowlingSort, setAllBowlingSort] = useState<SortConfig>({ key: "wickets", direction: "desc" });
   const [selectedLeagueId, setSelectedLeagueId] = useState<number | undefined>();
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | undefined>();
   const [selectedMatchId, setSelectedMatchId] = useState<number | undefined>();
@@ -89,12 +115,10 @@ export function Dashboard() {
     };
   }, [matches, stats]);
 
-  const allBatters = [...stats]
-    .filter((player) => player.innings > 0)
-    .sort((a, b) => b.runs - a.runs || (b.batting_average ?? 0) - (a.batting_average ?? 0));
-  const allBowlers = [...stats]
-    .filter((player) => player.overs > 0)
-    .sort((a, b) => b.wickets - a.wickets || (a.economy ?? 99) - (b.economy ?? 99));
+  const recentBatters = sortPlayers(playerRecords?.batting ?? [], recentBattingSort);
+  const recentBowlers = sortPlayers(playerRecords?.bowling ?? [], recentBowlingSort);
+  const allBatters = sortPlayers(stats.filter((player) => player.innings > 0), allBattingSort);
+  const allBowlers = sortPlayers(stats.filter((player) => player.overs > 0), allBowlingSort);
 
   return (
     <main>
@@ -148,28 +172,31 @@ export function Dashboard() {
           </label>
         </div>
 
-        <div className="content-grid">
+        <div className="records-grid">
           <div className="panel records-panel">
             <div className="panel-heading">
               <Trophy size={20} />
-              <h2>Batting Averages</h2>
+              <div>
+                <h2>Batting Averages</h2>
+                <p className="sort-note">{sortDescription(recentBattingSort)}</p>
+              </div>
             </div>
             <div className="records-table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Player</th>
-                    <th>Last Played</th>
-                    <th>Mat</th>
-                    <th>Inn</th>
-                    <th>Runs</th>
-                    <th>Scores</th>
-                    <th>Avg</th>
-                    <th>SR</th>
+                    <SortableTh label="Player" sortKey="display_name" sort={recentBattingSort} onSort={setRecentBattingSort} />
+                    <SortableTh label="Last Played" sortKey="last_played" sort={recentBattingSort} onSort={setRecentBattingSort} />
+                    <SortableTh label="Mat" sortKey="matches" sort={recentBattingSort} onSort={setRecentBattingSort} />
+                    <SortableTh label="Inn" sortKey="innings" sort={recentBattingSort} onSort={setRecentBattingSort} />
+                    <SortableTh label="Runs" sortKey="runs" sort={recentBattingSort} onSort={setRecentBattingSort} />
+                    <SortableTh label="Scores" sortKey="recent_scores" sort={recentBattingSort} onSort={setRecentBattingSort} />
+                    <SortableTh label="Avg" sortKey="batting_average" sort={recentBattingSort} onSort={setRecentBattingSort} />
+                    <SortableTh label="SR" sortKey="strike_rate" sort={recentBattingSort} onSort={setRecentBattingSort} />
                   </tr>
                 </thead>
                 <tbody>
-                  {(playerRecords?.batting ?? []).map((player) => (
+                  {recentBatters.map((player) => (
                     <tr key={player.player_id}>
                       <td>{player.display_name}</td>
                       <td>{formatDate(player.last_played)}</td>
@@ -189,23 +216,26 @@ export function Dashboard() {
           <div className="panel records-panel">
             <div className="panel-heading">
               <Users size={20} />
-              <h2>Bowling Averages</h2>
+              <div>
+                <h2>Bowling Averages</h2>
+                <p className="sort-note">{sortDescription(recentBowlingSort)}</p>
+              </div>
             </div>
             <div className="records-table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Player</th>
-                    <th>Last Played</th>
-                    <th>Mat</th>
-                    <th>Overs</th>
-                    <th>Wkts</th>
-                    <th>Avg</th>
-                    <th>Econ</th>
+                    <SortableTh label="Player" sortKey="display_name" sort={recentBowlingSort} onSort={setRecentBowlingSort} />
+                    <SortableTh label="Last Played" sortKey="last_played" sort={recentBowlingSort} onSort={setRecentBowlingSort} />
+                    <SortableTh label="Mat" sortKey="matches" sort={recentBowlingSort} onSort={setRecentBowlingSort} />
+                    <SortableTh label="Overs" sortKey="overs" sort={recentBowlingSort} onSort={setRecentBowlingSort} />
+                    <SortableTh label="Wkts" sortKey="wickets" sort={recentBowlingSort} onSort={setRecentBowlingSort} />
+                    <SortableTh label="Avg" sortKey="bowling_average" sort={recentBowlingSort} onSort={setRecentBowlingSort} />
+                    <SortableTh label="Econ" sortKey="economy" sort={recentBowlingSort} onSort={setRecentBowlingSort} />
                   </tr>
                 </thead>
                 <tbody>
-                  {(playerRecords?.bowling ?? []).map((player) => (
+                  {recentBowlers.map((player) => (
                     <tr key={player.player_id}>
                       <td>{player.display_name}</td>
                       <td>{formatDate(player.last_played)}</td>
@@ -223,22 +253,25 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="content-grid all-records-section" aria-label="All player records">
+      <section className="records-grid all-records-section" aria-label="All player records">
         <div className="panel">
           <div className="panel-heading">
             <Trophy size={20} />
-            <h2>All Batting Records</h2>
+            <div>
+              <h2>All Batting Records</h2>
+              <p className="sort-note">{sortDescription(allBattingSort)}</p>
+            </div>
           </div>
           <div className="records-table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Player</th>
-                  <th>Mat</th>
-                  <th>Runs</th>
-                  <th>Avg</th>
-                  <th>SR</th>
-                  <th>4s/6s</th>
+                  <SortableTh label="Player" sortKey="display_name" sort={allBattingSort} onSort={setAllBattingSort} />
+                  <SortableTh label="Mat" sortKey="matches" sort={allBattingSort} onSort={setAllBattingSort} />
+                  <SortableTh label="Runs" sortKey="runs" sort={allBattingSort} onSort={setAllBattingSort} />
+                  <SortableTh label="Avg" sortKey="batting_average" sort={allBattingSort} onSort={setAllBattingSort} />
+                  <SortableTh label="SR" sortKey="strike_rate" sort={allBattingSort} onSort={setAllBattingSort} />
+                  <SortableTh label="4s/6s" sortKey="boundaries" sort={allBattingSort} onSort={setAllBattingSort} />
                 </tr>
               </thead>
               <tbody>
@@ -260,18 +293,21 @@ export function Dashboard() {
         <div className="panel">
           <div className="panel-heading">
             <Users size={20} />
-            <h2>All Bowling Records</h2>
+            <div>
+              <h2>All Bowling Records</h2>
+              <p className="sort-note">{sortDescription(allBowlingSort)}</p>
+            </div>
           </div>
           <div className="records-table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Player</th>
-                  <th>Mat</th>
-                  <th>Wkts</th>
-                  <th>Overs</th>
-                  <th>Econ</th>
-                  <th>Avg</th>
+                  <SortableTh label="Player" sortKey="display_name" sort={allBowlingSort} onSort={setAllBowlingSort} />
+                  <SortableTh label="Mat" sortKey="matches" sort={allBowlingSort} onSort={setAllBowlingSort} />
+                  <SortableTh label="Wkts" sortKey="wickets" sort={allBowlingSort} onSort={setAllBowlingSort} />
+                  <SortableTh label="Overs" sortKey="overs" sort={allBowlingSort} onSort={setAllBowlingSort} />
+                  <SortableTh label="Econ" sortKey="economy" sort={allBowlingSort} onSort={setAllBowlingSort} />
+                  <SortableTh label="Avg" sortKey="bowling_average" sort={allBowlingSort} onSort={setAllBowlingSort} />
                 </tr>
               </thead>
               <tbody>
@@ -342,6 +378,81 @@ export function Dashboard() {
       </section>
     </main>
   );
+}
+
+type SortableThProps = {
+  label: string;
+  sortKey: string;
+  sort: SortConfig;
+  onSort: (next: SortConfig | ((current: SortConfig) => SortConfig)) => void;
+};
+
+function SortableTh({ label, sortKey, sort, onSort }: SortableThProps) {
+  const active = sort.key === sortKey;
+  const indicator = active ? (sort.direction === "asc" ? "↑" : "↓") : "↕";
+
+  return (
+    <th>
+      <button
+        className={`sort-button ${active ? "active" : ""}`}
+        type="button"
+        onClick={() => {
+          onSort((current) => ({
+            key: sortKey,
+            direction: current.key === sortKey ? toggleDirection(current.direction) : defaultDirection(sortKey)
+          }));
+        }}
+      >
+        <span>{label}</span>
+        <span aria-hidden="true">{indicator}</span>
+      </button>
+    </th>
+  );
+}
+
+function sortPlayers(players: PlayerStats[], sort: SortConfig) {
+  return [...players].sort((a, b) => compareSortValues(sortValue(a, sort.key), sortValue(b, sort.key), sort.direction));
+}
+
+function sortValue(player: PlayerStats, key: string): string | number | null {
+  switch (key) {
+    case "boundaries":
+      return player.fours + player.sixes;
+    case "recent_scores":
+      return player.recent_scores.join(" ");
+    default:
+      return player[key as keyof PlayerStats] as string | number | null;
+  }
+}
+
+function compareSortValues(a: string | number | null, b: string | number | null, direction: SortDirection) {
+  if (a === null && b === null) {
+    return 0;
+  }
+  if (a === null) {
+    return 1;
+  }
+  if (b === null) {
+    return -1;
+  }
+
+  const result = typeof a === "string" && typeof b === "string"
+    ? a.localeCompare(b)
+    : Number(a) - Number(b);
+  return direction === "asc" ? result : -result;
+}
+
+function sortDescription(sort: SortConfig) {
+  const label = SORT_LABELS[sort.key] ?? sort.key;
+  return `Sorted by ${label} ${sort.direction === "asc" ? "ascending" : "descending"}. Click a column header to sort.`;
+}
+
+function defaultDirection(key: string): SortDirection {
+  return ["bowling_average", "economy", "display_name"].includes(key) ? "asc" : "desc";
+}
+
+function toggleDirection(direction: SortDirection): SortDirection {
+  return direction === "asc" ? "desc" : "asc";
 }
 
 type ScorecardViewProps = {
