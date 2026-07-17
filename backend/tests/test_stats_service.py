@@ -81,7 +81,7 @@ def test_player_records_use_each_players_recent_match_window():
     assert records.match_limit == 2
     assert records.batting[0].display_name == "Batter"
     assert records.batting[0].last_played == date(2026, 1, 8)
-    assert records.batting[0].recent_scores == ["10", "40"]
+    assert records.batting[0].recent_scores == ["40", "10"]
     assert records.batting[0].runs == 50
     assert records.batting[0].matches == 2
     assert all(player.display_name != "Teammate" for player in records.batting)

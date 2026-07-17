@@ -190,10 +190,11 @@ class StatsService:
         ordered_batting = sorted(
             batting,
             key=lambda row: (
-                match_dates.get(row.match_id) is None,
-                match_dates.get(row.match_id),
+                match_dates.get(row.match_id) is not None,
+                match_dates.get(row.match_id) or 0,
                 row.match_id,
             ),
+            reverse=True,
         )
         return [f"{row.runs}{'*' if row.not_out else ''}" for row in ordered_batting]
 
