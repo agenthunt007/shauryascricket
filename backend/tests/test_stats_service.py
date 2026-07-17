@@ -76,15 +76,18 @@ def test_player_records_use_each_players_recent_match_window():
             session.add(BattingInnings(match_id=match.id, player_id=teammate.id, runs=20, balls=20))
         session.commit()
 
-        records = StatsService(session).player_records(StatsFilters(series_id=series.id), match_limit=2)
+        service = StatsService(session)
+        records = service.player_records(StatsFilters(series_id=series.id), match_limit=7)
+        larger_window_records = service.player_records(StatsFilters(series_id=series.id), match_limit=8)
 
-    assert records.match_limit == 2
-    assert records.batting[0].display_name == "Batter"
-    assert records.batting[0].last_played == date(2026, 1, 8)
-    assert records.batting[0].recent_scores == ["40", "10"]
-    assert records.batting[0].runs == 50
-    assert records.batting[0].matches == 2
+    assert records.match_limit == 7
+    batter_record = next(player for player in records.batting if player.display_name == "Batter")
+    assert batter_record.last_played == date(2026, 1, 8)
+    assert batter_record.recent_scores == ["40", "10", "6", "5", "4", "3", "2"]
+    assert batter_record.runs == 70
+    assert batter_record.matches == 7
     assert any(player.display_name == "Teammate" for player in records.batting)
+    assert all(player.display_name != "Teammate" for player in larger_window_records.batting)
     assert records.bowling[0].display_name == "Bowler"
     assert records.bowling[0].last_played == date(2026, 1, 8)
-    assert records.bowling[0].wickets == 15
+    assert records.bowling[0].wickets == 35
