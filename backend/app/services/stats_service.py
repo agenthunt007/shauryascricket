@@ -30,7 +30,7 @@ class StatsService:
         stats = []
         for player in players:
             appearance_match_ids = self._player_match_ids(player, filters)
-            if len(appearance_match_ids) <= self.RECORD_MIN_MATCHES:
+            if len(appearance_match_ids) < self.RECORD_MIN_MATCHES:
                 continue
             match_ids = self._recent_match_ids(appearance_match_ids, match_limit)
             stats.append(

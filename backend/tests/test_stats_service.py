@@ -65,7 +65,7 @@ def test_player_records_use_each_players_recent_match_window():
             session.add(BattingInnings(match_id=match.id, player_id=batter.id, runs=runs, balls=20))
             session.add(BowlingSpell(match_id=match.id, player_id=bowler.id, overs=4, runs_conceded=20, wickets=index))
 
-        for index in [9, 10]:
+        for index in range(9, 16):
             match = Match(
                 series_id=series.id,
                 source_url=f"https://example.test/match-{index}",
@@ -84,7 +84,7 @@ def test_player_records_use_each_players_recent_match_window():
     assert records.batting[0].recent_scores == ["40", "10"]
     assert records.batting[0].runs == 50
     assert records.batting[0].matches == 2
-    assert all(player.display_name != "Teammate" for player in records.batting)
+    assert any(player.display_name == "Teammate" for player in records.batting)
     assert records.bowling[0].display_name == "Bowler"
     assert records.bowling[0].last_played == date(2026, 1, 8)
     assert records.bowling[0].wickets == 15
